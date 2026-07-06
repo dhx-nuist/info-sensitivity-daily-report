@@ -1,61 +1,48 @@
 ---
 name: info-sensitivity-daily-report
-description: Automates daily information intelligence gathering. Transforms the 20-method information sensitivity framework into an executable daily workflow covering finance, real estate, cross-border ecommerce, emerging industries, and AI tech. Outputs structured Markdown daily reports. Triggered when user asks to run daily information report, gather market intelligence, or track AI or Agent job trends. On first use, guides user through preference setup.
+description: 轻量级每日信息情报采集。4 层并行采集（政策宏观、热点舆情、行业风险、招聘），10 分钟快速浏览。覆盖金融/房产/外贸/新兴行业/AI科技，输出 HTML 日报。
 agent_created: true
 ---
 
-# 信息敏感度日报 Skill
+# 信息敏感度日报 Skill（精简版）
 
 ## 概述
 
-本 skill 将知乎《训练信息获取敏感度的 20 种方法》转化为 agent 每日可自动执行的情报采集流程，产出结构化 Markdown 日报。
+将信息敏感度训练框架转化为**轻量级每日情报采集**，4 层并行采集，约 5-8 分钟完成，产出可供 10 分钟快速浏览的 HTML 日报。
 
-**核心价值观**：早（抢在信息传导链末端前）、准（标注来源与可信度）、链（跨源交叉印证）、判（给出信号判断）。
+**核心价值观**：早（抢在信息传导链末端前）、准（标注来源与可信度）、快（精简到核心，不贪多）、判（给出信号判断）。
 
 ---
 
 ## 首次使用：偏好设置流程
 
-> 检测到用户首次使用（或无 `.workbuddy/memory/info-daily-report/config.json`）时，**必须先完成偏好设置**，再执行采集。
-
-按以下顺序询问用户（每次 1-2 个问题，避免一次问太多）：
+检测到用户首次使用（无 `.workbuddy/memory/info-daily-report/config.json`）时，先完成偏好设置。每次 1-2 个问题，不要一次问太多。
 
 ### 第 1 步：关注领域
 
 ```
-请选择你最关注的领域（可多选，这决定信息源优先级和关键词池）：
+请选择你最关注的领域（可多选）：
 
 □ 金融财经投资（股市/基金/证券/宏观政策）
-□ 房产地产（限购/信贷/土拍/政府报告）
+□ 房产地产（限购/信贷/土拍/政策）
 □ 跨境电商/外贸（关税/海外政策/出海品牌）
-□ 新兴小众行业（宠物殡葬/汉服/3D打印/二次元等）
-□ 人工智能/agent/科技（大模型/AI应用/融资/监管）
+□ 新兴小众行业（3D打印/汉服/宠物殡葬/二次元等）
+□ 人工智能/科技（大模型/AI应用/融资/监管）
 ```
 
-### 第 2 步：输出形式
+### 第 2 步：招聘信息（可选）
 
 ```
-每日报告希望以什么形式交付？
+是否需要每日采集招聘信息？
 
-○ Markdown 报告（生成 .md 文件，结构清晰，便于检索复盘）【推荐】
-○ HTML 网页（可视化预览，带分类卡片）
-○ 直接对话回复（不落地文件，每天在聊天里给总结）
-○ Markdown + HTML 都要
+○ 不需要（默认，日报更精简）
+○ 需要（增加 AI/Agent 岗位 + 国企/事业单位招聘）
 ```
 
-### 第 3 步：招聘信息
+### 第 3 步：自动化
 
 ```
-是否需要每日采集 AI/Agent 招聘信息（岗位/公司/地点/技能树/学习路径）？
-
-○ 需要（推荐，含技能趋势周环比）
-○ 不需要
-```
-
-### 第 4 步：自动化
-
-```
-要不要把这套流程设成每日定时自动化？
+要不要设成每日定时自动化？
 
 ○ 先跑一次看效果（推荐）
 ○ 现在就设成每日定时（需告知具体时间）
@@ -64,14 +51,14 @@ agent_created: true
 
 ### 保存配置
 
-将用户选择写入 `.workbuddy/memory/info-daily-report/config.json`：
+写入 `.workbuddy/memory/info-daily-report/config.json`：
 
 ```json
 {
-  "version": "1.1",
+  "version": "2.0",
   "domains": ["finance", "real_estate", "cross_border", "emerging", "ai_tech"],
-  "output_format": "markdown",
-  "include_recruitment": true,
+  "include_recruitment": false,
+  "recruitment_extra": {},
   "auto_schedule": false,
   "setup_completed": true,
   "setup_date": "YYYY-MM-DD"
@@ -82,151 +69,185 @@ agent_created: true
 
 ## 每日执行流程
 
-配置完成后，每次触发「跑今日信息敏感度日报」时，按以下步骤执行。
-
 ### Step 1：读取配置
 
-读取 `.workbuddy/memory/info-daily-report/config.json`，确认用户偏好。如文件不存在，重新走偏好设置流程。
+读取 `.workbuddy/memory/info-daily-report/config.json`。如不存在，重新走偏好设置。
 
-### Step 2：并行采集（按信息传导链顺序）
+### Step 2：并行采集（4 层，每层 1 个 agent）
 
-按以下顺序执行采集（同一层可并行网页请求）：
+用 4 个 agent **并行在后台**执行，每层只做 `WebSearch` + `WebFetch`，不碰登录页、不爬反爬页面。
 
-**① 政策层**（最早信号）
-- 方法 19：政府报告/招标/发改委/住建部/商务部公告
-- 方法 16：海外平台（YouTube/Twitter/Quora/Reddit）英文关键词搜索
+**① 政策宏观层**
+搜索关键词（选 3-4 个组合搜）：
+- "2026年7月 政策 经济 央行 财政部 发改委 公告"
+- "2026年7月 外贸政策 关税 跨境电商 新规"
+- "2026年7月 中美贸易 中欧贸易 地缘"
+- 叠加用户关注领域的政策关键词
 
-**② 资本/社区层**
-- 方法 18：雪球、天天基金、天涯经济/海外板块热帖
-- 方法 5：新榜公众号榜单（各领域，公开页侧面获取）
-- 方法 9：西瓜数据/飞瓜数据/抖查查头部流量（公开页侧面获取）
+输出要点：政策条目 + 来源 + 影响判断（机会/风险/观察）
 
-**③ 热点层**
-- 方法 1：微博热搜、知乎热榜、头条热搜、百度热搜、抖音热榜
-  - **⚠️ 过滤规则**：纯娱乐（明星八卦/综艺/电视剧）、纯体育赛事结果、纯 Celebrity 条目**不录入**；消费趋势相关（如"雪糕没人吃"=消费降级信号）保留
-- 方法 10：知乎镜像问题（"男生怎么看/女生怎么看"），破单一视角
+**② 热点舆情层**
+搜索关键词：
+- "2026年7月 微博热搜 知乎热榜 百度热搜 今日热点"
+- "2026年7月 雪球 股市 基金 热议"
+- 知乎镜像问题（对立视角）
 
-**④ 行业层**
-- 方法 17：天眼查/企查查/国家企业信息公示系统，搜近 1-3 月新注册公司
-- 方法 2：应用商店新上架榜，记录新 App 及开发公司
-- 方法 13：5118 大数据飙升词/行业词库（公开页侧面获取）
+⚠️ 过滤纯娱乐/体育/明星八卦，保留消费趋势、社会议题、争议话题。
 
-**⑤ 案例/风险层**
-- 方法 6：公安反诈公众号、终结诈骗、国家反诈中心，搜最新诈骗手法
-- 方法 14：中国裁判文书网，搜金融/电商/合同相关近期结案
+输出要点：TOP 10-15 热点 + 3-5 个镜像视角
 
-**⑥ 招聘层**（如配置开启）
-- 方法 20：AI/Agent 招聘信息采集（详见「招聘信息采集细则」）
+**③ 行业风险层**
+搜索关键词：
+- "2026年7月 AI融资 科技行业 动态"
+- "2026年7月 房地产 楼市 政策 房价"
+- 用户关注的新兴行业动态
+- "2026年7月 反诈 新型诈骗 AI诈骗 金融诈骗"
+- "2026年7月 金融直播 割韭菜 风险"
 
-**⑦ 广告/流量层**
-- 方法 3：信息流/竞价/贴片广告，搜索最新广告案例与广告主
-- 方法 4：百度/360/UC/头条/谷歌竞价关键词，看前 3-5 页广告位
-- 方法 12：抖音/快手/视频号金融投资直播切片（⚠️ 警惕割韭菜）
+输出要点：行业动态 + 风险案例 + 判断
 
-**⑧ 工具/导航层**（低频，每周维护一次）
-- 方法 8：考拉新媒体/媒帮派/猎手导航/滚石技术导航，记忆站点名
-- 方法 15：微博公开关注列表，反推信息圈
+**④ 招聘信息层**（仅 `include_recruitment: true` 时执行）
+搜索关键词：
+- "2026年7月 AI岗位 招聘 大厂 校招 薪资"
+- "2026年 国企 事业单位 招聘 数学 统计"
+- "AI Agent 岗位 技能要求 薪资"
+
+输出要点：大厂动态 + TOP 岗位 + 技能趋势 + 国企/事业单位
 
 ### Step 3：编译日报
 
-按 `references/report-template.md` 的模板结构，将采集结果编译为 Markdown 日报。
-
-**关键规则：**
-- ✅ **只展示实际获取到的信息**；未取到的源不显示、不留"待人工补充"占位
-- ✅ **专业金融/技术名词首次出现时附简要注记**（括号补充，1 句话），例：`LPR（贷款市场报价利率，房贷定价基准）`
-- ✅ **热搜过滤纯娱乐**，已过滤的不显示
-- ✅ 每条信息附来源链接；无源不收录
-- ✅ 信号判断标注「agent 推测」并给理由
-
-### Step 4：招聘周环比趋势（如开启）
-
-每次采集招聘信息后，**与上周同期的技能关键词频率对比**，在「AI/Agent 招聘信息」板块输出：
+所有 agent 返回后，编译为 HTML 日报，结构如下（精简为 5 个核心板块）：
 
 ```
-### 本周 vs 上周技能趋势变化
-| 技能词 | 本周提及次数 | 上周提及次数 | 变化 | 信号 |
-|--------|-------------|------------|------|------|
-| RAG    | 89          | 72         | ↑23.6% | 持续热门 |
-| 多智能体 | 45        | 28         | ↑60.7% | 新兴热点 |
-| C++    | 35          | 42         | ↓16.7% | 需求平稳 |
+0. 今日一句话
+1. 政策与宏观（含海外信号）
+2. 热点与舆情（TOP 10-15 + 镜像视角）
+3. 行业与风险（行业动态 + 风险案例合并）
+4. AI/Agent 招聘（如开启）
+5. 信号汇总表（一表收尾，最多 12 条）
 ```
 
-**实现方式**：
-- 每周一将上周的技能词频数据存档至 `.workbuddy/memory/info-daily-report/skill-trend-YYYY-WW.json`
-- 本周采集时读取上周存档，计算环比，输出趋势表
-- 如为本周第一天且无上周数据，输出「暂无上周对比数据，下周将生成周环比」
+**编译规则：**
+- ✅ 只展示实际拿到的信息，不占位、不灌水
+- ✅ 每条信息标注来源和可信度（A/B/C）
+- ✅ 信号判断标注强度（★~★★★★★）和类型（机会/风险/观察）
+- ✅ 专业名词首次出现附括号注记
+- ✅ 总篇幅控制在 300 行以内，适合 10 分钟浏览
+- ✅ 直接输出 HTML（不要 Markdown），文件名 `YYYY-MM-DD-信息敏感度日报.html`
 
-### Step 5：交付
+### Step 4：交付
 
-根据用户配置的 `output_format` 交付：
-- `markdown`：写入 `YYYY-MM-DD-信息敏感度日报.md`，调用 `present_files` 展示
-- `html`：基于模板生成 HTML 文件，调用 `present_files` 展示
-- `both`：同时生成 .md 和 .html
+- 从 `config.json` 读取 `output_dir` 字段获取输出目录
+- 若配置中无此字段，默认输出到当前工作目录
+- 写入 `{output_dir}/YYYY-MM-DD-信息敏感度日报.html`
+- 调用 `present_files` 展示
+- 不要额外生成 .md 文件
 
 ---
 
-## 招聘信息采集细则（方法 20）
+## 招聘信息采集细则
 
-### 数据源（优先级）
+### 数据源
+1. 人社部招聘月活动 / 新华网招聘报道
+2. CSDN/知乎/脉脉 JD 分析文章
+3. 国资央企招聘平台 / 国家大学生就业服务平台
+4. BOSS直聘/猎聘公开岗位（不登录浏览）
 
-1. **人社部"互联网企业云端招聘月"活动页**（定期更新，权威）★★★★★
-2. **新华网/人民网/经济参考报招聘专题报道**（权威）★★★★★
-3. **CSDN/知乎公开的招聘分析文章**（深度分析，含 101 份 JD 统计等）★★★★
-4. **企业官网招聘页**（腾讯/字节/阿里/美团/京东等）★★★
-5. **智联招聘/猎聘公开岗位列表页**（不登录浏览）★★
+### 核心输出
+- 头部大厂动态表（公司/岗位数/地点/薪资/核心技能）
+- 热门岗位 TOP 5（岗位/公司类型/薪资/技能）
+- 高频技能词统计
+- 技能树与学习路径（准入→进阶→推荐顺序）
+- 城市薪资参考（样本不足不输出）
+- 国企/事业单位专项（如用户需要）
 
-### 采集字段
+### 周环比趋势
+- 每周一将上周技能词频存档至 `.workbuddy/memory/info-daily-report/skill-trend-YYYY-WW.json`
+- 本周对比上周，输出趋势表
+- 无上周数据时标注「暂无对比数据」
 
-| 字段 | 说明 |
-|------|------|
-| 公司名 | 腾讯/字节/美团/阿里/AI 科技公司等 |
-| 岗位名 | AI Agent 开发工程师 / 大模型算法工程师 / RAG 应用开发 等 |
-| 工作地点 | 北京/深圳/上海/杭州/成都 等 |
-| 薪资范围 | 如 25K-60K·14 薪 |
-| 核心技能 | Python/LangChain/RAG/多智能体/PyTorch 等 |
-| 学历要求 | 本科/硕士/不限 |
-| 发布日期 | 用于判断趋势 |
+---
 
-### 学习路径生成规则
+## HTML 日报模板
 
-根据当日高频技能词，生成三层学习路径：
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>信息敏感度日报 · YYYY-MM-DD</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 24px 20px; line-height: 1.75; color: #2c3e50; background: #fff; font-size: 15px; }
+  h1 { font-size: 1.4em; margin-bottom: 4px; }
+  h2 { font-size: 1.15em; margin-top: 28px; padding-bottom: 6px; border-bottom: 2px solid #e74c3c; color: #c0392b; }
+  h3 { font-size: 1.05em; margin-top: 18px; color: #555; }
+  .tagline { color: #999; font-size: 0.85em; margin-bottom: 20px; }
+  .oneliner { background: linear-gradient(135deg, #fff5f5, #fef9e7); padding: 14px 18px; border-radius: 8px; margin: 16px 0; font-weight: 600; font-size: 1.05em; border-left: 4px solid #e74c3c; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0 18px; font-size: 0.9em; }
+  th, td { border: 1px solid #e8e8e8; padding: 7px 10px; text-align: left; vertical-align: top; }
+  th { background: #f5f5f5; font-weight: 600; white-space: nowrap; }
+  tr:nth-child(even) td { background: #fafafa; }
+  .badge-opp { display: inline-block; background: #e74c3c; color: #fff; padding: 1px 7px; border-radius: 3px; font-size: 0.78em; }
+  .badge-risk { display: inline-block; background: #27ae60; color: #fff; padding: 1px 7px; border-radius: 3px; font-size: 0.78em; }
+  .badge-watch { display: inline-block; background: #f39c12; color: #fff; padding: 1px 7px; border-radius: 3px; font-size: 0.78em; }
+  .stars { color: #e74c3c; }
+  .source { color: #999; font-size: 0.82em; }
+  .source a { color: #7f8c8d; }
+  a { color: #2980b9; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .warn { color: #e67e22; font-size: 0.88em; }
+  hr { border: none; border-top: 1px dashed #eee; margin: 20px 0; }
+  code { background: #f4f4f4; padding: 1px 5px; border-radius: 3px; font-size: 0.9em; }
+  pre { background: #2d3436; color: #dfe6e9; padding: 14px; border-radius: 6px; overflow-x: auto; font-size: 0.85em; line-height: 1.5; }
+  .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #eee; color: #bbb; font-size: 0.8em; text-align: center; }
+  .skill-tree { background: #f8f9fa; padding: 14px 18px; border-radius: 8px; margin: 12px 0; }
+  .skill-tree h4 { margin-bottom: 8px; color: #2c3e50; }
+  .skill-tree ul { padding-left: 20px; }
+  .skill-tree li { margin: 3px 0; }
+  @media (max-width: 600px) { body { padding: 12px; font-size: 14px; } table { font-size: 0.8em; } }
+</style>
+</head>
+<body>
+<!-- 模板占位，agent 实际填充 -->
+<h1>信息敏感度日报 · YYYY-MM-DD</h1>
+<p class="tagline">采集方式：公开源并行检索 | 可信度：A=权威 B=行业媒体 C=自媒体 | 强度：★~★★★★★</p>
 
+<div class="oneliner"><!-- 今日一句话 --></div>
+
+<h2>1. 政策与宏观</h2>
+<!-- 政策表格：条目 | 可信度 | 影响领域 | 判断 -->
+<!-- 海外信号合并在此板块 -->
+
+<h2>2. 热点与舆情</h2>
+<!-- TOP 10-15 热点 + 3-5 镜像视角 -->
+
+<h2>3. 行业与风险</h2>
+<!-- 行业动态 + 诈骗/风险案例 -->
+
+<h2>4. AI/Agent 招聘（如开启）</h2>
+<!-- 大厂动态 + 热门岗位 + 技能趋势 + 学习路径 + 国企招聘 -->
+
+<h2>5. 信号汇总</h2>
+<!-- 一表收尾：信号 | 领域 | 类型 | 强度 -->
+
+<div class="footer">信息敏感度日报 · 不构成投资建议 · 诈骗案例仅供风险识别</div>
+</body>
+</html>
 ```
-【准入技能】（0 基础可学）
-- Python（提及最多，AI 开发标配）
-- Prompt Engineering（零代码，1 周可掌握）
-- LangChain/LangGraph 基础（跑通第一个 Agent Demo）
-
-【进阶技能】（冲击高薪）
-- RAG + 向量数据库（Milvus/Pinecone）
-- 模型微调（SFT/LoRA/QLoRA）
-- 多智能体（Multi-Agent）协作开发
-
-【推荐学习顺序】
-第 1-2 周：Python 基础 + Prompt Engineering
-第 3-4 周：LangChain 入门 + 跑通第一个 Agent Demo
-第 5-8 周：RAG 原理 + 向量数据库实战
-第 9-12 周：模型微调基础 + 多智能体框架
-第 13-16 周：工程化能力（Docker + FastAPI 部署）
-```
-
-> ⚠️ 不推荐付费课程，以上技能均有高质量免费资源。
-
-### 城市薪资统计
-
-- 每周从公开招聘信息中累积样本
-- 计算北京/深圳/上海/杭州平均薪资和中位数
-- 样本 <10 时不输出该城市数据，标注「样本不足」
 
 ---
 
 ## 红线与原则
 
-1. **不涉灰色违法**：骗局案例仅作风险识别，不输出操作方法、不引流、不教唆
-2. **注明来源**：每条信息附链接或可复现检索式；拿不到的直接跳过，不写"待补充"占位
-3. **区分事实与判断**：事实标来源，判断标「agent 推测」并给理由
-4. **警惕割韭菜**：金融直播/付费圈层内容，默认加「⚠️ 可能含割韭菜动机」标签
-5. **效率优先**：不在反爬页面空耗时间，拿不到就跳过
+1. **效率优先**：4 层并行，5-8 分钟出结果；拿不到的数据源直接跳过，不空转
+2. **不写占位**：只展示实际获取的信息，未取到的板块不留痕迹
+3. **注明来源**：每条信息附链接；无源不收录
+4. **区分事实与判断**：事实标来源，判断写「agent 推测」
+5. **警惕割韭菜**：金融直播/付费内容默认加 ⚠️ 标签
+6. **控制篇幅**：300 行以内，10 分钟可读完
+7. **直接出 HTML**：不生成 Markdown 中间文件
 
 ---
 
@@ -237,14 +258,5 @@ agent_created: true
 | `跑今日信息敏感度日报` | 执行当日采集 |
 | `跑今日日报，特别关注：{主题}` | 加临时主题 |
 | `汇总本周日报，提炼 3 个最强信号` | 周复盘 |
-| `汇总本周 AI/Agent 招聘趋势` | 招聘专题 |
+| `开启招聘信息` / `关闭招聘信息` | 切换招聘板块 |
 | `哪些城市 AI 岗最多？薪资怎么样？` | 招聘统计 |
-
----
-
-## 文件与记忆管理
-
-- **配置文件**：`.workbuddy/memory/info-daily-report/config.json`
-- **技能趋势存档**：`.workbuddy/memory/info-daily-report/skill-trend-YYYY-WW.json`
-- **日报输出**：工作目录 `YYYY-MM-DD-信息敏感度日报.md`
-- **项目记忆**：`.workbuddy/memory/MEMORY.md`（记录用户偏好与领域设定）
