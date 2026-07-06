@@ -1,4 +1,3 @@
-# info-sensitivity-daily-report
 # 信息敏感度日报 Skill
 
 > 将知乎《训练信息获取敏感度的20种方法》转化为 AI Agent 每日自动执行的情报采集流程。
