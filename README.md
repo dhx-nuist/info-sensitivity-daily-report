@@ -36,16 +36,17 @@
 
 **方式一：从 Release 下载 zip**
 1. 前往 [Release 页面](https://github.com/dhx-nuist/info-sensitivity-daily-report/releases) 下载最新 `info-sensitivity-daily-report.zip`
-2. 在 WorkBuddy 中导入 zip 文件
+2. 在Codex或Claude Code中导入 zip 文件
 
 **方式二：手动安装**
 ```bash
 # 克隆本仓库
 git clone https://github.com/dhx-nuist/info-sensitivity-daily-report.git
 
-# 将 skill 文件夹复制到 WorkBuddy skills 目录
-cp -r info-sensitivity-daily-report ~/.workbuddy/skills/
-```
+# 将 skill 文件夹复制到skills 目录
+
+**方式三：自动安装**
+将本项目的仓库链接复制在Codex或Claude Code等agent中让其自己安装
 
 ### 首次使用
 
