@@ -50,7 +50,7 @@ git clone https://github.com/dhx-nuist/info-sensitivity-daily-report.git
 
 ### 首次使用
 
-在 WorkBuddy 对话中输入：
+在对话中输入：
 
 ```
 跑今日信息敏感度日报
