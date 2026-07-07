@@ -39,7 +39,23 @@ agent_created: true
 ○ 需要（增加 AI/Agent 岗位 + 国企/事业单位招聘）
 ```
 
-### 第 3 步：自动化
+### 第 3 步：输出路径
+
+> **跨平台注意**：Windows 用 `\` 或 `/`，macOS 用 `/`。支持中文路径。用户输入时无需关心平台差异，agent 自行处理。
+
+```
+日报文件保存在哪里？
+
+默认建议（可根据你的习惯修改）：
+  Windows：F:\读书笔记\每日日报    （或其他盘符）
+  macOS：~/Documents/每日日报
+
+输入你要用的根目录路径即可。
+```
+
+保存到 `output_base_dir` 字段。agent 会自动在此路径下创建 `年/月月/` 子目录结构。
+
+### 第 4 步：自动化
 
 ```
 要不要设成每日定时自动化？
@@ -59,11 +75,19 @@ agent_created: true
   "domains": ["finance", "real_estate", "cross_border", "emerging", "ai_tech"],
   "include_recruitment": false,
   "recruitment_extra": {},
+  "output_base_dir": "用户输入的根目录路径",
   "auto_schedule": false,
   "setup_completed": true,
   "setup_date": "YYYY-MM-DD"
 }
 ```
+
+**output_base_dir 说明：**
+- 存储用户选择的根目录（不含年/月子目录）
+- 运行时自动拼接 `/{year}/{month}月/`，无需用户每次手动切换月份
+- Windows 示例：`F:\读书笔记\每日日报` → 运行时 → `F:\读书笔记\每日日报\2026\7月\YYYY-MM-DD-信息敏感度日报.html`
+- macOS 示例：`/Users/xxx/Documents/每日日报` → 运行时 → `/Users/xxx/Documents/每日日报/2026/7月/YYYY-MM-DD-信息敏感度日报.html`
+- 平台差异由 agent 运行时自动处理（os.sep / pathlib）
 
 ---
 
@@ -73,9 +97,26 @@ agent_created: true
 
 读取 `.workbuddy/memory/info-daily-report/config.json`。如不存在，重新走偏好设置。
 
+**自动路径解析（每次执行都做）：**
+
+1. 从 config.json 读取 `output_base_dir`
+2. 获取当前系统日期，提取年（如 `2026`）、月（如 `7`）
+3. 拼接输出目录：`{output_base_dir}/{年}/{月}月/`（跨平台兼容：Windows 用 `\`，macOS 用 `/`，`pathlib` 或 `os.path.join` 自动处理）
+4. 若目标目录不存在，自动创建（`mkdir -p` 或 `os.makedirs`）
+5. 最终文件路径：`{输出目录}/YYYY-MM-DD-信息敏感度日报.html`
+
+> **无需手动切换月份**——每年 1 月自动切到新 `{年}` 目录，每月自动切到新 `{月}月/` 子目录。
+
 ### Step 2：并行采集（4 层，每层 1 个 agent）
 
 用 4 个 agent **并行在后台**执行，每层只做 `WebSearch` + `WebFetch`，不碰登录页、不爬反爬页面。
+
+**采集状态追踪：** 每层 agent 返回后，记录状态（成功/部分/失败），汇总后在日报中显示。
+
+**失败判定与降级：**
+- 搜索结果为空 + 无任何可用条目 → 标记为「无数据」
+- agent 超时/报错 → 标记为「采集失败」
+- 仅部分关键词有结果 → 标记为「部分」（正常，不视为失败）
 
 **① 政策宏观层**
 搜索关键词（选 3-4 个组合搜）：
@@ -109,7 +150,7 @@ agent_created: true
 **④ 招聘信息层**（仅 `include_recruitment: true` 时执行）
 搜索关键词：
 - "2026年7月 AI岗位 招聘 大厂 校招 薪资"
-- "2026年 国企 事业单位 招聘 岗位"
+- "2026年 国企 事业单位 招聘 数学 统计"
 - "AI Agent 岗位 技能要求 薪资"
 
 输出要点：大厂动态 + TOP 岗位 + 技能趋势 + 国企/事业单位
@@ -119,8 +160,8 @@ agent_created: true
 > **强约束**：所有 agent 返回后，必须由主 agent（你）亲自按「HTML 日报模板」章节的固定排版编译为完整 HTML 文件，不得让子 agent 自由发挥排版。
 
 所有 agent 返回后，编译为 HTML 日报，**严格套用「HTML 日报模板（固定排版）」章节的完整结构**，不得改动以下任何一项：
-- HTML 结构顺序（标题→今日一句话→5个板块→信号汇总→页脚）
-- CSS 类名（`.oneliner`、`.badge-opp`、`.badge-risk`、`.badge-watch`、`.stars`、`.risk-box`、`.warn-box`、`.source`、`.footer`）
+- HTML 结构顺序（标题→今日一句话→采集状态→5个板块→信号汇总→页脚）
+- CSS 类名（`.oneliner`、`.collect-status`、`.layer`、`.ok`、`.fail`、`.partial`、`.badge-opp`、`.badge-risk`、`.badge-watch`、`.stars`、`.risk-box`、`.warn-box`、`.source`、`.footer`）
 - 表格列名（每个表格的第一行 `<tr><th>` 必须与模板完全一致）
 - 强度星标格式（`<span class="stars">★★★★★</span>`，★最多5颗）
 - 判断标签格式（`<span class="badge-opp">机会</span>` 等）
@@ -133,6 +174,7 @@ agent_created: true
 - ✅ 总篇幅控制在 300 行以内，适合 10 分钟浏览
 - ✅ 直接输出完整 HTML 文件（不要 Markdown），文件名 `YYYY-MM-DD-信息敏感度日报.html`
 - ✅ `include_recruitment: false` 时，省略板块 4（AI/Agent 招聘），信号汇总表相应调整
+- ✅ 采集状态栏 `.collect-status` 必须根据各层 agent 实际返回填写：全部成功→全部✅；部分有数据→⚠️部分；完全无数据/超时→❌失败
 
 **今日一句话写法**：
 - 用 `.oneliner` div，80字以内
@@ -142,9 +184,8 @@ agent_created: true
 
 ### Step 4：交付
 
-- 从 `config.json` 读取 `output_dir` 字段获取输出目录
-- 若配置中无此字段，默认输出到当前工作目录
-- 写入 `{output_dir}/YYYY-MM-DD-信息敏感度日报.html`
+- 使用 Step 1 中自动解析的输出路径（`{output_base_dir}/{年}/{月}月/`）
+- 写入 `YYYY-MM-DD-信息敏感度日报.html` 到该路径
 - 调用 `present_files` 展示
 - 不要额外生成 .md 文件
 
@@ -210,6 +251,11 @@ agent_created: true
   .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #eee; color: #bbb; font-size: 0.8em; text-align: center; }
   .warn-box { background: #fff9e6; border-left: 4px solid #f39c12; padding: 10px 14px; margin: 12px 0; font-size: 0.9em; border-radius: 0 6px 6px 0; }
   .risk-box { background: #fdf2f2; border-left: 4px solid #27ae60; padding: 10px 14px; margin: 12px 0; font-size: 0.9em; border-radius: 0 6px 6px 0; }
+  .collect-status { background: #f8f9fa; padding: 10px 14px; border-radius: 6px; margin: 12px 0; font-size: 0.82em; color: #666; display: flex; flex-wrap: wrap; gap: 10px; }
+  .collect-status .layer { display: inline-flex; align-items: center; gap: 4px; }
+  .collect-status .ok { color: #27ae60; }
+  .collect-status .fail { color: #e74c3c; font-weight: 600; }
+  .collect-status .partial { color: #f39c12; }
   @media (max-width: 600px) { body { padding: 12px; font-size: 14px; } table { font-size: 0.8em; } }
 </style>
 </head>
@@ -222,6 +268,14 @@ agent_created: true
 <!-- ② 今日一句话（oneliner）：用 🔥 或 💡 开头，不超过 80 字 -->
 <div class="oneliner">
   🔥 一句话概括今日最强信号（不超过80字）
+</div>
+
+<!-- ②½ 采集状态（agent 必须填写） -->
+<div class="collect-status">
+  <span class="layer ok">✅ 政策宏观</span>
+  <span class="layer ok">✅ 热点舆情</span>
+  <span class="layer partial">⚠️ 行业风险（部分）</span>
+  <span class="layer fail">❌ 招聘（超时）</span>
 </div>
 
 <!-- ③ 板块 1：政策与宏观 -->
@@ -308,11 +362,11 @@ agent_created: true
   <strong>应届起薪参考</strong>：本科XX/月，硕士XX/月，博士XX/月
 </div>
 
-<h3>国企/事业单位</h3>
+<h3>国企/事业单位（数学背景）</h3>
 <table>
   <tr><th>单位类型</th><th>代表单位</th><th>岗位方向</th><th>学历要求</th></tr>
 </table>
-<p class="source">策略建议：国企/事业单位岗位竞争比市场岗位低，适合追求稳定的用户。</p>
+<p class="source">策略建议：优先选"仅限数学类"岗位，竞争比远低于泛专业岗位。</p>
 
 <hr>
 
@@ -343,6 +397,10 @@ agent_created: true
 | `.stars` | 强度星标：`<span class="stars">★★★★★</span>`（最多5颗★） |
 | `.risk-box` | 重点风险说明块，红色左边框 |
 | `.warn-box` | 警告/提示说明块，橙色左边框 |
+| `.collect-status` | 采集状态条，4 个 layer 各标 ✅/⚠️/❌ |
+| `.layer.ok` | 采集成功的 layer 状态 |
+| `.layer.partial` | 部分成功的 layer 状态 |
+| `.layer.fail` | 采集失败的 layer 状态 |
 | `.source` | 来源链接文字样式 |
 | `<strong>` | 重点条目/信号加粗 |
 | `<hr>` | 板块之间的分隔线 |
