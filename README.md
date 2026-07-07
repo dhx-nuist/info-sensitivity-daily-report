@@ -40,7 +40,7 @@
 
 **方式一：让 Agent 自动安装**
 
-在 WorkBuddy 对话中粘贴本仓库链接，Agent 会自动下载并安装 Skill：
+在Codex或Claude Code等应用的对话中粘贴本仓库链接，Agent 会自动下载并安装 Skill：
 
 ```
 帮我安装这个 skill：https://github.com/dhx-nuist/info-sensitivity-daily-report
@@ -52,15 +52,14 @@
 # 克隆本仓库
 git clone https://github.com/dhx-nuist/info-sensitivity-daily-report.git
 
-# 将 SKILL.md 复制到 WorkBuddy skills 目录
+# 将 SKILL.md 复制到skills 目录（例如）
 cp info-sensitivity-daily-report/SKILL.md ~/.workbuddy/skills/info-sensitivity-daily-report/SKILL.md
 ```
-
 ## 使用方法
 
 ### 首次使用
 
-在 WorkBuddy 对话中输入：
+在对话中输入：
 
 ```
 跑今日信息敏感度日报
@@ -117,7 +116,7 @@ info-sensitivity-daily-report/
 
 ## 技术背景
 
-基于信息敏感度训练框架提炼可自动化执行的信息采集方法，构建为可复用的 WorkBuddy Skill。v2.0 起精简为 4 层采集，HTML 直出，更适合每日快速浏览。
+基于信息敏感度训练框架提炼可自动化执行的信息采集方法，构建为可复用的Skill。v2.0 起精简为 4 层采集，HTML 直出，更适合每日快速浏览。
 
 ## 贡献
 
