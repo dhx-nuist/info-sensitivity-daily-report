@@ -116,16 +116,14 @@ agent_created: true
 
 ### Step 3：编译日报
 
-所有 agent 返回后，编译为 HTML 日报，结构如下（精简为 5 个核心板块）：
+> **强约束**：所有 agent 返回后，必须由主 agent（你）亲自按「HTML 日报模板」章节的固定排版编译为完整 HTML 文件，不得让子 agent 自由发挥排版。
 
-```
-0. 今日一句话
-1. 政策与宏观（含海外信号）
-2. 热点与舆情（TOP 10-15 + 镜像视角）
-3. 行业与风险（行业动态 + 风险案例合并）
-4. AI/Agent 招聘（如开启）
-5. 信号汇总表（一表收尾，最多 12 条）
-```
+所有 agent 返回后，编译为 HTML 日报，**严格套用「HTML 日报模板（固定排版）」章节的完整结构**，不得改动以下任何一项：
+- HTML 结构顺序（标题→今日一句话→5个板块→信号汇总→页脚）
+- CSS 类名（`.oneliner`、`.badge-opp`、`.badge-risk`、`.badge-watch`、`.stars`、`.risk-box`、`.warn-box`、`.source`、`.footer`）
+- 表格列名（每个表格的第一行 `<tr><th>` 必须与模板完全一致）
+- 强度星标格式（`<span class="stars">★★★★★</span>`，★最多5颗）
+- 判断标签格式（`<span class="badge-opp">机会</span>` 等）
 
 **编译规则：**
 - ✅ 只展示实际拿到的信息，不占位、不灌水
@@ -133,7 +131,14 @@ agent_created: true
 - ✅ 信号判断标注强度（★~★★★★★）和类型（机会/风险/观察）
 - ✅ 专业名词首次出现附括号注记
 - ✅ 总篇幅控制在 300 行以内，适合 10 分钟浏览
-- ✅ 直接输出 HTML（不要 Markdown），文件名 `YYYY-MM-DD-信息敏感度日报.html`
+- ✅ 直接输出完整 HTML 文件（不要 Markdown），文件名 `YYYY-MM-DD-信息敏感度日报.html`
+- ✅ `include_recruitment: false` 时，省略板块 4（AI/Agent 招聘），信号汇总表相应调整
+
+**今日一句话写法**：
+- 用 `.oneliner` div，80字以内
+- 机会主导日：🔥开头，概括最强机会信号
+- 风险主导日：🚨开头，概括最强风险信号
+- 混合日：🔥+🚨并列
 
 ### Step 4：交付
 
@@ -168,7 +173,9 @@ agent_created: true
 
 ---
 
-## HTML 日报模板
+## HTML 日报模板（固定排版，每次严格套用）
+
+> **重要**：每次生成日报必须严格按此模板的 HTML 结构、CSS 类名、板块顺序输出，不得自行改动排版。
 
 ```html
 <!DOCTYPE html>
@@ -189,9 +196,9 @@ agent_created: true
   th, td { border: 1px solid #e8e8e8; padding: 7px 10px; text-align: left; vertical-align: top; }
   th { background: #f5f5f5; font-weight: 600; white-space: nowrap; }
   tr:nth-child(even) td { background: #fafafa; }
-  .badge-opp { display: inline-block; background: #e74c3c; color: #fff; padding: 1px 7px; border-radius: 3px; font-size: 0.78em; }
-  .badge-risk { display: inline-block; background: #27ae60; color: #fff; padding: 1px 7px; border-radius: 3px; font-size: 0.78em; }
-  .badge-watch { display: inline-block; background: #f39c12; color: #fff; padding: 1px 7px; border-radius: 3px; font-size: 0.78em; }
+  .badge-opp { display: inline-block; background: #e74c3c; color: #fff; padding: 1px 7px; border-radius: 3px; font-size: 0.78em; margin-right: 4px; }
+  .badge-risk { display: inline-block; background: #27ae60; color: #fff; padding: 1px 7px; border-radius: 3px; font-size: 0.78em; margin-right: 4px; }
+  .badge-watch { display: inline-block; background: #f39c12; color: #fff; padding: 1px 7px; border-radius: 3px; font-size: 0.78em; margin-right: 4px; }
   .stars { color: #e74c3c; }
   .source { color: #999; font-size: 0.82em; }
   .source a { color: #7f8c8d; }
@@ -200,42 +207,155 @@ agent_created: true
   .warn { color: #e67e22; font-size: 0.88em; }
   hr { border: none; border-top: 1px dashed #eee; margin: 20px 0; }
   code { background: #f4f4f4; padding: 1px 5px; border-radius: 3px; font-size: 0.9em; }
-  pre { background: #2d3436; color: #dfe6e9; padding: 14px; border-radius: 6px; overflow-x: auto; font-size: 0.85em; line-height: 1.5; }
   .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #eee; color: #bbb; font-size: 0.8em; text-align: center; }
-  .skill-tree { background: #f8f9fa; padding: 14px 18px; border-radius: 8px; margin: 12px 0; }
-  .skill-tree h4 { margin-bottom: 8px; color: #2c3e50; }
-  .skill-tree ul { padding-left: 20px; }
-  .skill-tree li { margin: 3px 0; }
+  .warn-box { background: #fff9e6; border-left: 4px solid #f39c12; padding: 10px 14px; margin: 12px 0; font-size: 0.9em; border-radius: 0 6px 6px 0; }
+  .risk-box { background: #fdf2f2; border-left: 4px solid #27ae60; padding: 10px 14px; margin: 12px 0; font-size: 0.9em; border-radius: 0 6px 6px 0; }
   @media (max-width: 600px) { body { padding: 12px; font-size: 14px; } table { font-size: 0.8em; } }
 </style>
 </head>
 <body>
-<!-- 模板占位，agent 实际填充 -->
+
+<!-- ① 标题 + tagline -->
 <h1>信息敏感度日报 · YYYY-MM-DD</h1>
-<p class="tagline">采集方式：公开源并行检索 | 可信度：A=权威 B=行业媒体 C=自媒体 | 强度：★~★★★★★</p>
+<p class="tagline">星期X | 采集方式：公开源并行检索 | 可信度：A=权威 B=行业媒体 C=自媒体 | 强度：★~★★★★★</p>
 
-<div class="oneliner"><!-- 今日一句话 --></div>
+<!-- ② 今日一句话（oneliner）：用 🔥 或 💡 开头，不超过 80 字 -->
+<div class="oneliner">
+  🔥 一句话概括今日最强信号（不超过80字）
+</div>
 
+<!-- ③ 板块 1：政策与宏观 -->
 <h2>1. 政策与宏观</h2>
-<!-- 政策表格：条目 | 可信度 | 影响领域 | 判断 -->
-<!-- 海外信号合并在此板块 -->
 
+<h3>国内金融/宏观</h3>
+<table>
+  <tr><th>政策条目</th><th>可信度</th><th>影响领域</th><th>判断</th><th>强度</th></tr>
+  <tr>
+    <td>政策内容描述</td>
+    <td>A</td><td>金融</td>
+    <td><span class="badge-risk">风险</span></td>
+    <td><span class="stars">★★★★</span></td>
+  </tr>
+</table>
+
+<h3>房地产</h3>
+<!-- 表格同上结构 -->
+
+<h3>外贸/关税</h3>
+<!-- 表格同上结构 -->
+
+<h3>海外信号</h3>
+<!-- 表格同上结构 -->
+
+<hr>
+
+<!-- ④ 板块 2：热点与舆情 -->
 <h2>2. 热点与舆情</h2>
-<!-- TOP 10-15 热点 + 3-5 镜像视角 -->
 
+<h3>热搜TOP（过滤纯娱乐/体育后）</h3>
+<table>
+  <tr><th>热点</th><th>平台</th><th>信号类型</th><th>强度</th></tr>
+  <tr><td><strong>重点热点加粗</strong></td><td>平台名</td><td>类型</td><td><span class="stars">★★★★★</span></td></tr>
+</table>
+
+<h3>镜像视角（对立观点）</h3>
+<table>
+  <tr><th>争议话题</th><th>A面</th><th>B面</th></tr>
+  <tr><td>话题</td><td>观点A</td><td>观点B</td></tr>
+</table>
+
+<hr>
+
+<!-- ⑤ 板块 3：行业与风险 -->
 <h2>3. 行业与风险</h2>
-<!-- 行业动态 + 诈骗/风险案例 -->
 
-<h2>4. AI/Agent 招聘（如开启）</h2>
-<!-- 大厂动态 + 热门岗位 + 技能趋势 + 学习路径 + 国企招聘 -->
+<h3>AI/科技</h3>
+<!-- 表格结构：动态 | 可信度 | 判断 | 强度 -->
 
+<h3>房地产</h3>
+<!-- 同上 -->
+
+<h3>跨境电商（如有风险标注）</h3>
+<div class="risk-box">
+  <strong>风险标题</strong>：风险描述
+</div>
+<div class="warn-box">
+  <strong>警告标题</strong>：警告描述
+</div>
+
+<h3>风险案例</h3>
+<table>
+  <tr><th>案例</th><th>类型</th><th>受害群体</th><th>警示</th></tr>
+  <tr><td>案例描述</td><td>类型</td><td>群体</td><td>⚠️ 警示内容</td></tr>
+</table>
+
+<hr>
+
+<!-- ⑥ 板块 4：AI/Agent 招聘（include_recruitment: true 时输出） -->
+<h2>4. AI/Agent 招聘</h2>
+
+<h3>头部大厂动态</h3>
+<table>
+  <tr><th>公司</th><th>岗位/方向</th><th>薪资参考</th><th>核心技能</th></tr>
+</table>
+
+<h3>热门岗位 TOP 5</h3>
+<table>
+  <tr><th>岗位</th><th>薪资（月）</th><th>人才缺口</th><th>核心技能</th></tr>
+</table>
+
+<div class="warn-box">
+  <strong>应届起薪参考</strong>：本科XX/月，硕士XX/月，博士XX/月
+</div>
+
+<h3>国企/事业单位（数学背景）</h3>
+<table>
+  <tr><th>单位类型</th><th>代表单位</th><th>岗位方向</th><th>学历要求</th></tr>
+</table>
+<p class="source">策略建议：优先选"仅限数学类"岗位，竞争比远低于泛专业岗位。</p>
+
+<hr>
+
+<!-- ⑦ 板块 5：信号汇总 -->
 <h2>5. 信号汇总</h2>
-<!-- 一表收尾：信号 | 领域 | 类型 | 强度 -->
+<table>
+  <tr><th>#</th><th>信号</th><th>领域</th><th>类型</th><th>强度</th></tr>
+  <tr><td>1</td><td><strong>信号内容</strong></td><td>领域</td><td><span class="badge-risk">风险</span></td><td><span class="stars">★★★★★</span></td></tr>
+</table>
 
-<div class="footer">信息敏感度日报 · 不构成投资建议 · 诈骗案例仅供风险识别</div>
+<!-- ⑧ 页脚 -->
+<div class="footer">
+  信息敏感度日报 · YYYY-MM-DD · 4层并行采集 · 不构成投资建议 · 诈骗案例仅供风险识别
+</div>
+
 </body>
 </html>
 ```
+
+### 排版使用说明（agent 必须遵守）
+
+| 元素 | 用法 |
+|------|------|
+| `.oneliner` | 今日一句话，80字以内，🔥机会 / 💡风险 开头 |
+| `.badge-opp` | 判断为「机会」时用：`<span class="badge-opp">机会</span>` |
+| `.badge-risk` | 判断为「风险」时用：`<span class="badge-risk">风险</span>` |
+| `.badge-watch` | 判断为「观察」时用：`<span class="badge-watch">观察</span>` |
+| `.stars` | 强度星标：`<span class="stars">★★★★★</span>`（最多5颗★） |
+| `.risk-box` | 重点风险说明块，红色左边框 |
+| `.warn-box` | 警告/提示说明块，橙色左边框 |
+| `.source` | 来源链接文字样式 |
+| `<strong>` | 重点条目/信号加粗 |
+| `<hr>` | 板块之间的分隔线 |
+
+### 表格列名规范（固定不变）
+
+- 政策表格：`政策条目 | 可信度 | 影响领域 | 判断 | 强度`
+- 热点表格：`热点 | 平台 | 信号类型 | 强度`
+- 行业表格：`动态 | 可信度 | 判断 | 强度`
+- 风险案例：`案例 | 类型 | 受害群体 | 警示`
+- 招聘大厂：`公司 | 岗位/方向 | 薪资参考 | 核心技能`
+- 招聘TOP5：`岗位 | 薪资（月） | 人才缺口 | 核心技能`
+- 信号汇总：`# | 信号 | 领域 | 类型 | 强度`
 
 ---
 
